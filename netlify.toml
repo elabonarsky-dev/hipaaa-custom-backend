@@ -1,0 +1,13 @@
+[build]
+  command = "pnpm run db:generate"
+  publish = "."
+
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
+  external_node_modules = ["@prisma/client"]
+  included_files = ["node_modules/.prisma/**", "node_modules/@prisma/client/**"]
+
+[dev]
+  port = 8888
+  functions = "netlify/functions"

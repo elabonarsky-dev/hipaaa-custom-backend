@@ -1,0 +1,135 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum FormType {
+  REFERRAL
+  INTAKE
+  ENROLLMENT
+}
+
+enum SubmissionStatus {
+  RECEIVED
+  PROCESSING
+  FORWARDED
+  FAILED
+  REVIEW
+  REPLAYED
+}
+
+enum ReviewStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  REPLAYED
+}
+
+enum DocumentStatus {
+  PENDING
+  UPLOADING
+  UPLOADED
+  FAILED
+}
+
+enum MemberStage {
+  REFERRAL
+  INTAKE
+  ENROLLMENT
+}
+
+model Member {
+  id              String   @id @default(cuid())
+  cinNormalized   String   @unique @map("cin_normalized")
+  cinRaw          String   @map("cin_raw")
+  firstName       String   @map("first_name")
+  lastName        String   @map("last_name")
+  dob             String?
+  phone           String?
+  email           String?
+  currentStage    MemberStage @default(REFERRAL) @map("current_stage")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  documents       SharePointDocument[]
+
+  @@map("members")
+}
+
+model SubmissionEvent {
+  id                    String           @id @default(cuid())
+  formType              FormType         @map("form_type")
+  jotformSubmissionId   String?          @map("jotform_submission_id")
+  payloadHash           String           @map("payload_hash")
+  rawPayload            Json             @map("raw_payload")
+  cinNormalized         String?          @map("cin_normalized")
+  status                SubmissionStatus @default(RECEIVED)
+  vsResponseCode        Int?             @map("vs_response_code")
+  vsResponseBody        String?          @map("vs_response_body")
+  errorMessage          String?          @map("error_message")
+  createdAt             DateTime         @default(now()) @map("created_at")
+  updatedAt             DateTime         @updatedAt @map("updated_at")
+
+  reviewItems           ReviewQueueItem[]
+
+  @@index([cinNormalized])
+  @@index([jotformSubmissionId])
+  @@index([payloadHash])
+  @@map("submission_events")
+}
+
+model AuditLog {
+  id           String   @id @default(cuid())
+  eventType    String   @map("event_type")
+  message      String
+  metadataJson Json?    @map("metadata_json")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@index([eventType])
+  @@map("audit_logs")
+}
+
+model ReviewQueueItem {
+  id                  String       @id @default(cuid())
+  submissionEventId   String       @map("submission_event_id")
+  reason              String
+  status              ReviewStatus @default(PENDING)
+  reviewedBy          String?      @map("reviewed_by")
+  reviewNote          String?      @map("review_note")
+  createdAt           DateTime     @default(now()) @map("created_at")
+  updatedAt           DateTime     @updatedAt @map("updated_at")
+
+  submissionEvent     SubmissionEvent @relation(fields: [submissionEventId], references: [id])
+
+  @@index([status])
+  @@map("review_queue_items")
+}
+
+model SharePointDocument {
+  id               String         @id @default(cuid())
+  memberId         String         @map("member_id")
+  jotformFileUrl   String         @map("jotform_file_url")
+  sharepointUrl    String?        @map("sharepoint_url")
+  sharepointPath   String?        @map("sharepoint_path")
+  fileName         String?        @map("file_name")
+  status           DocumentStatus @default(PENDING)
+  errorMessage     String?        @map("error_message")
+  createdAt        DateTime       @default(now()) @map("created_at")
+
+  member           Member @relation(fields: [memberId], references: [id])
+
+  @@index([memberId])
+  @@map("sharepoint_documents")
+}
+
+model IdempotencyKey {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("idempotency_keys")
+}

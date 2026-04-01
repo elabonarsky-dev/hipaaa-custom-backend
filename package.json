@@ -1,0 +1,42 @@
+{
+  "name": "hipaaa-custom-backend",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Healthcare workflow integration backend — JotForm → VanillaSoft + SharePoint",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "scripts": {
+    "dev": "netlify dev",
+    "build": "tsc --noEmit && netlify build",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "db:generate": "prisma generate",
+    "db:push": "prisma db push",
+    "db:migrate": "prisma migrate dev",
+    "db:migrate:deploy": "prisma migrate deploy",
+    "db:studio": "prisma studio",
+    "db:seed": "tsx prisma/seed.ts",
+    "lint": "eslint src netlify --ext .ts",
+    "format": "prettier --write \"src/**/*.ts\" \"netlify/**/*.ts\""
+  },
+  "dependencies": {
+    "@microsoft/microsoft-graph-client": "^3.0.7",
+    "@netlify/functions": "^2.8.2",
+    "@prisma/client": "^6.5.0",
+    "isomorphic-fetch": "^3.0.0",
+    "pino": "^9.6.0",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@types/node": "^20.17.0",
+    "netlify-cli": "^18.0.0",
+    "prettier": "^3.5.0",
+    "prisma": "^6.5.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0",
+    "vitest": "^3.1.0"
+  }
+}

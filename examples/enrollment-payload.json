@@ -1,0 +1,23 @@
+{
+  "submissionID": "5001234569",
+  "formID": "240001234569",
+  "cin": "AB1234CD",
+  "first_name": "Maria",
+  "last_name": "Garcia",
+  "dob": "03/15/1985",
+  "phone": "(555) 123-4567",
+  "email": "maria.garcia@example.com",
+  "address": "123 Main Street",
+  "city": "Brooklyn",
+  "state": "NY",
+  "zip": "11201",
+  "plan_name": "Healthfirst",
+  "enrollment_date": "2026-03-31",
+  "program_type": "Care Management",
+  "enrollment_status": "Active",
+  "care_plan_goals": "Blood sugar management, regular PCP visits",
+  "file_urls": [
+    "https://www.jotform.com/uploads/user123/form456/sub789/consent_form.pdf",
+    "https://www.jotform.com/uploads/user123/form456/sub789/insurance_card.jpg"
+  ]
+}

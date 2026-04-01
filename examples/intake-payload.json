@@ -1,0 +1,23 @@
+{
+  "submissionID": "5001234568",
+  "formID": "240001234568",
+  "cin": "AB1234CD",
+  "first_name": "Maria",
+  "last_name": "Garcia",
+  "dob": "03/15/1985",
+  "phone": "(555) 123-4567",
+  "email": "maria.garcia@example.com",
+  "address": "123 Main Street",
+  "city": "Brooklyn",
+  "state": "NY",
+  "zip": "11201",
+  "plan_name": "Healthfirst",
+  "pcp_name": "Dr. Smith",
+  "pcp_phone": "(555) 999-0000",
+  "chronic_conditions": "Diabetes, Hypertension",
+  "medications": "Metformin 500mg, Lisinopril 10mg",
+  "intake_date": "2026-03-31",
+  "care_coordinator": "Jane Wilson",
+  "consent_signed": "yes",
+  "language_preference": "Spanish"
+}
