@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>HIPAAA Custom Backend</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚕</text></svg>"
+    />
+    <style>
+      :root {
+        color-scheme: light dark;
+        font-family: system-ui, sans-serif;
+        line-height: 1.5;
+        max-width: 40rem;
+        margin: 2rem auto;
+        padding: 0 1rem;
+      }
+      code {
+        font-size: 0.9em;
+      }
+      a {
+        color: inherit;
+      }
+      ul {
+        padding-left: 1.25rem;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>HIPAAA Custom Backend</h1>
+    <p>
+      This is an API-only project. There is no app at <code>/</code> beyond this
+      page. Use the endpoints below (with <code>netlify dev</code>, base URL is
+      <code>http://localhost:8888</code>).
+    </p>
+    <h2>Try it</h2>
+    <ul>
+      <li>
+        <a href="/.netlify/functions/health"><code>GET /.netlify/functions/health</code></a>
+        — health check
+      </li>
+    </ul>
+    <h2>Webhooks (POST)</h2>
+    <ul>
+      <li><code>/.netlify/functions/jotform-referral</code></li>
+      <li><code>/.netlify/functions/jotform-intake</code></li>
+      <li><code>/.netlify/functions/jotform-enrollment</code></li>
+    </ul>
+    <h2>Admin</h2>
+    <ul>
+      <li><code>GET /.netlify/functions/admin-review</code> — header <code>X-Api-Key</code></li>
+      <li><code>POST /.netlify/functions/admin-replay</code> — header <code>X-Api-Key</code></li>
+    </ul>
+    <p>See <code>README.md</code> for environment variables and flow details.</p>
+  </body>
+</html>

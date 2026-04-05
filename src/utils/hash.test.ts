@@ -26,4 +26,22 @@ describe("hashPayload", () => {
     expect(hash).toHaveLength(64);
     expect(hash).toMatch(/^[0-9a-f]{64}$/);
   });
+
+  it("produces same hash for nested objects regardless of inner key order", () => {
+    const hash1 = hashPayload({ outer: { b: 2, a: 1 } } as Record<string, unknown>);
+    const hash2 = hashPayload({ outer: { a: 1, b: 2 } } as Record<string, unknown>);
+    expect(hash1).toBe(hash2);
+  });
+
+  it("handles bigint values without throwing", () => {
+    const h = hashPayload({ id: 1n } as unknown as Record<string, unknown>);
+    expect(h).toHaveLength(64);
+  });
+
+  it("serializes Date deterministically", () => {
+    const d = new Date("2020-01-15T12:00:00.000Z");
+    const h1 = hashPayload({ t: d } as unknown as Record<string, unknown>);
+    const h2 = hashPayload({ t: d } as unknown as Record<string, unknown>);
+    expect(h1).toBe(h2);
+  });
 });

@@ -1,11 +1,18 @@
 import type { Handler, HandlerEvent } from "@netlify/functions";
 import { getDb } from "../../src/db";
 import { getReviewItemWithSubmission, updateReviewItem } from "../../src/modules/review";
-import { processSubmission } from "../../src/modules/webhooks";
+import {
+  processSubmission,
+  jotformPayloadSchema,
+  extractFields,
+  computeIdempotencyKey,
+  deleteIdempotencyKey,
+} from "../../src/modules/webhooks";
+import type { JotformPayload } from "../../src/modules/webhooks/schema";
 import { writeAuditLog } from "../../src/modules/audit";
 import { getEnv } from "../../src/config";
-import { logger, jsonResponse, errorResponse } from "../../src/utils";
-import type { FormType } from "@prisma/client";
+import { logger, jsonResponse, errorResponse, getDecodedEventBody } from "../../src/utils";
+import type { FormType } from "@/prisma";
 
 interface ReplayRequest {
   reviewItemId: string;
@@ -19,17 +26,24 @@ export const handler: Handler = async (event: HandlerEvent) => {
     return errorResponse(405, "Method not allowed");
   }
 
+  const expectedKey = getEnv().ADMIN_API_KEY;
   const apiKey = event.headers["x-api-key"] ?? event.headers["X-Api-Key"];
-  if (apiKey !== getEnv().ADMIN_API_KEY) {
+  if (!expectedKey || apiKey !== expectedKey) {
     return errorResponse(401, "Unauthorized");
   }
 
   try {
-    if (!event.body) {
+    const rawBody = getDecodedEventBody(event);
+    if (!rawBody) {
       return errorResponse(400, "Missing request body");
     }
 
-    const request = JSON.parse(event.body) as ReplayRequest;
+    let request: ReplayRequest;
+    try {
+      request = JSON.parse(rawBody) as ReplayRequest;
+    } catch {
+      return errorResponse(400, "Invalid JSON body");
+    }
 
     if (!request.reviewItemId || !request.action || !request.reviewedBy) {
       return errorResponse(400, "Missing required fields: reviewItemId, action, reviewedBy");
@@ -56,18 +70,33 @@ export const handler: Handler = async (event: HandlerEvent) => {
       return jsonResponse(200, { action: "rejected", reviewItemId: request.reviewItemId });
     }
 
-    await updateReviewItem(db, request.reviewItemId, "REPLAYED", request.reviewedBy, request.reviewNote);
-
     const rawPayload = reviewItem.submissionEvent.rawPayload as Record<string, unknown>;
     const formType = reviewItem.submissionEvent.formType as FormType;
+
+    const parsed = jotformPayloadSchema.safeParse(rawPayload);
+    const payload = parsed.success ? parsed.data : rawPayload;
+    const fields = extractFields(payload as JotformPayload);
+    const idempotencyKey = computeIdempotencyKey(fields.submissionId, rawPayload);
+    await deleteIdempotencyKey(db, idempotencyKey);
 
     await writeAuditLog(db, "REPLAY_TRIGGERED", "Replaying submission from review queue", {
       reviewItemId: request.reviewItemId,
       submissionEventId: reviewItem.submissionEventId,
       reviewedBy: request.reviewedBy,
+      idempotencyKey,
     });
 
-    const result = await processSubmission(db, formType, rawPayload);
+    let result;
+    try {
+      result = await processSubmission(db, formType, rawPayload);
+    } catch (replayErr) {
+      await db.idempotencyKey
+        .create({ data: { key: idempotencyKey } })
+        .catch(() => undefined);
+      throw replayErr;
+    }
+
+    await updateReviewItem(db, request.reviewItemId, "REPLAYED", request.reviewedBy, request.reviewNote);
 
     logger.info({ reviewItemId: request.reviewItemId, result: { action: result.action } }, "Replay completed");
 

@@ -1,13 +1,29 @@
 import { z } from "zod";
 
+/** JotForm often sends numeric submission IDs; normalize to string for DB and idempotency. */
+const optionalJotformId = z
+  .union([z.string(), z.number(), z.bigint()])
+  .optional()
+  .transform((v) => (v === undefined ? undefined : String(v)));
+
+export function coerceSubmissionId(value: unknown): string | null {
+  if (value === undefined || value === null || value === "") return null;
+  if (typeof value === "string" || typeof value === "number" || typeof value === "bigint") {
+    return String(value);
+  }
+  return null;
+}
+
 /**
  * Minimal schema for the critical fields we need from JotForm payloads.
  * The raw payload is forwarded to VanillaSoft as-is — we only extract
  * what we need for dedup, member matching, and routing.
  */
 export const jotformPayloadSchema = z.object({
-  submissionID: z.string().optional(),
-  formID: z.string().optional(),
+  submissionID: optionalJotformId,
+  submission_id: optionalJotformId,
+  formID: optionalJotformId,
+  form_id: optionalJotformId,
 
   cin: z.string().optional(),
   medicaid_id: z.string().optional(),
@@ -72,8 +88,14 @@ export function extractFields(payload: JotformPayload): NormalizedFields {
     fileUrls = rawFiles.filter(Boolean);
   }
 
+  const rec = payload as Record<string, unknown>;
+  const submissionId =
+    coerceSubmissionId(rec.submissionID) ??
+    coerceSubmissionId(rec.submission_id) ??
+    null;
+
   return {
-    submissionId: payload.submissionID ?? null,
+    submissionId,
     cinRaw,
     firstName,
     lastName,

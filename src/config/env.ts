@@ -25,7 +25,8 @@ const envSchema = z.object({
   SHAREPOINT_SITE_ID: z.string().optional(),
   SHAREPOINT_DRIVE_ID: z.string().optional(),
 
-  ADMIN_API_KEY: z.string().min(1).default("changeme"),
+  /** Required to use admin-review / admin-replay; omit on webhook-only workers if you split deploys. */
+  ADMIN_API_KEY: z.string().min(1).optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;

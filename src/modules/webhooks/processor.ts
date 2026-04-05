@@ -1,4 +1,4 @@
-import type { PrismaClient, FormType, Prisma } from "@prisma/client";
+import { Prisma, type PrismaClient, type FormType, type Member } from "@/prisma";
 import { jotformPayloadSchema, extractFields } from "./schema";
 import { computeIdempotencyKey, checkAndRecordIdempotency } from "./idempotency";
 import {
@@ -220,7 +220,30 @@ async function handleReferral(
     };
   }
 
-  const member = await createMember(db, memberData, "REFERRAL");
+  let member: Member;
+  try {
+    member = await createMember(db, memberData, "REFERRAL");
+  } catch (e) {
+    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
+      const raced = await findMemberByCin(db, ctx.cinNormalized);
+      if (raced) {
+        await sendToReview(
+          db,
+          submissionEventId,
+          "Duplicate referral: member was created concurrently for the same CIN"
+        );
+        return {
+          success: true,
+          action: "REVIEW_QUEUED",
+          submissionEventId,
+          memberId: raced.id,
+          reviewQueued: true,
+        };
+      }
+    }
+    throw e;
+  }
+
   await writeAuditLog(db, "MEMBER_CREATED", "New member from referral", {
     memberId: member.id,
     cin: maskCin(ctx.cinNormalized),
@@ -285,11 +308,6 @@ async function handleIntake(
     };
   }
 
-  await advanceMemberStage(db, existingMember.id, "INTAKE", memberData);
-  await writeAuditLog(db, "MEMBER_UPDATED", "Member updated via intake", {
-    memberId: existingMember.id,
-  });
-
   const vsResult = await forwardToVanillaSoft("INTAKE", ctx.rawBody, ctx.cinNormalized);
   await recordVsResult(db, submissionEventId, vsResult);
 
@@ -303,6 +321,11 @@ async function handleIntake(
       reviewQueued: true,
     };
   }
+
+  await advanceMemberStage(db, existingMember.id, "INTAKE", memberData);
+  await writeAuditLog(db, "MEMBER_UPDATED", "Member updated via intake", {
+    memberId: existingMember.id,
+  });
 
   return {
     success: true,
@@ -349,11 +372,6 @@ async function handleEnrollment(
     };
   }
 
-  await advanceMemberStage(db, existingMember.id, "ENROLLMENT", memberData);
-  await writeAuditLog(db, "MEMBER_UPDATED", "Member updated via enrollment", {
-    memberId: existingMember.id,
-  });
-
   const vsResult = await forwardToVanillaSoft("ENROLLMENT", ctx.rawBody, ctx.cinNormalized);
   await recordVsResult(db, submissionEventId, vsResult);
 
@@ -367,6 +385,11 @@ async function handleEnrollment(
       reviewQueued: true,
     };
   }
+
+  await advanceMemberStage(db, existingMember.id, "ENROLLMENT", memberData);
+  await writeAuditLog(db, "MEMBER_UPDATED", "Member updated via enrollment", {
+    memberId: existingMember.id,
+  });
 
   if (ctx.fileUrls.length > 0) {
     try {

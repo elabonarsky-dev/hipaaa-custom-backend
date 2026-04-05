@@ -1,6 +1,6 @@
 import { getVsUrl } from "../../config";
 import { createChildLogger, maskCin } from "../../utils";
-import type { FormType } from "@prisma/client";
+import type { FormType } from "@/prisma";
 
 const log = createChildLogger({ module: "vanillasoft" });
 

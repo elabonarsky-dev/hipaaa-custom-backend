@@ -1,5 +1,7 @@
 generator client {
   provider = "prisma-client-js"
+  // Outside node_modules so Netlify Dev on Windows does not try to copy node_modules/.prisma as a file (EISDIR).
+  output   = "./generated/client"
 }
 
 datasource db {

@@ -1,7 +1,7 @@
 import { getEnv } from "../../config";
 import { createChildLogger, maskCin } from "../../utils";
 import { getSharePointToken } from "./auth";
-import type { PrismaClient } from "@prisma/client";
+import type { PrismaClient } from "@/prisma";
 
 const log = createChildLogger({ module: "sharepoint-upload" });
 
@@ -52,13 +52,14 @@ export async function uploadFileToSharePoint(
     const fileName = extractFileName(fileUrl);
     const folderPath = `CareCollab/${cinNormalized}/${formType}/${submissionId}`;
     const uploadPath = `${folderPath}/${fileName}`;
+    const encodedPath = encodeGraphDrivePath(uploadPath);
 
     log.info({ uploadPath, size: fileBuffer.byteLength }, "Uploading to SharePoint");
 
     const graphUrl =
       `https://graph.microsoft.com/v1.0/sites/${env.SHAREPOINT_SITE_ID}` +
       `/drives/${env.SHAREPOINT_DRIVE_ID}` +
-      `/root:/${uploadPath}:/content`;
+      `/root:/${encodedPath}:/content`;
 
     const uploadResponse = await fetch(graphUrl, {
       method: "PUT",
@@ -129,6 +130,15 @@ export async function processSharePointUploads(
       },
     });
   }
+}
+
+/** Encode each path segment for Microsoft Graph `root:/path:/content` (spaces, unicode, etc.). */
+function encodeGraphDrivePath(path: string): string {
+  return path
+    .split("/")
+    .filter(Boolean)
+    .map((segment) => encodeURIComponent(segment))
+    .join("/");
 }
 
 function extractFileName(url: string): string {

@@ -1,4 +1,4 @@
-import type { PrismaClient, Prisma } from "@prisma/client";
+import type { PrismaClient, Prisma } from "@/prisma";
 import { createChildLogger } from "../../utils";
 
 const log = createChildLogger({ module: "audit" });

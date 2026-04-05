@@ -1,4 +1,4 @@
-import type { PrismaClient, ReviewQueueItem, ReviewStatus } from "@prisma/client";
+import type { PrismaClient, ReviewQueueItem, ReviewStatus } from "@/prisma";
 import { createChildLogger } from "../../utils";
 
 const log = createChildLogger({ module: "review" });

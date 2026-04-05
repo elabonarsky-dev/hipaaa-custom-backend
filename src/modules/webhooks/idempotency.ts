@@ -1,4 +1,4 @@
-import type { PrismaClient } from "@prisma/client";
+import { Prisma, type PrismaClient } from "@/prisma";
 import { hashPayload, createChildLogger } from "../../utils";
 
 const log = createChildLogger({ module: "idempotency" });
@@ -30,6 +30,22 @@ export async function checkAndRecordIdempotency(
     return true;
   }
 
-  await db.idempotencyKey.create({ data: { key } });
-  return false;
+  try {
+    await db.idempotencyKey.create({ data: { key } });
+    return false;
+  } catch (e) {
+    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
+      log.info({ key }, "Duplicate submission detected (concurrent insert)");
+      return true;
+    }
+    throw e;
+  }
+}
+
+/** Removes a recorded idempotency key (e.g. before admin replay of the same JotForm submission). */
+export async function deleteIdempotencyKey(
+  db: PrismaClient,
+  key: string
+): Promise<void> {
+  await db.idempotencyKey.deleteMany({ where: { key } });
 }

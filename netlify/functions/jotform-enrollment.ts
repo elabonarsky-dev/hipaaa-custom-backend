@@ -1,15 +1,26 @@
 import type { Handler, HandlerEvent } from "@netlify/functions";
 import { getDb } from "../../src/db";
 import { processSubmission } from "../../src/modules/webhooks";
-import { logger, jsonResponse, errorResponse } from "../../src/utils";
+import {
+  logger,
+  jsonResponse,
+  errorResponse,
+  verifyJotFormWebhook,
+  parseJotFormPostBody,
+} from "../../src/utils";
 
 export const handler: Handler = async (event: HandlerEvent) => {
   if (event.httpMethod !== "POST") {
     return errorResponse(405, "Method not allowed");
   }
 
+  const auth = verifyJotFormWebhook(event);
+  if (!auth.ok) {
+    return errorResponse(auth.statusCode, auth.message);
+  }
+
   try {
-    const body = parseBody(event);
+    const body = parseJotFormPostBody(event);
     if (!body) {
       return errorResponse(400, "Missing or invalid request body");
     }
@@ -25,22 +36,3 @@ export const handler: Handler = async (event: HandlerEvent) => {
     return errorResponse(500, "Internal server error");
   }
 };
-
-function parseBody(event: HandlerEvent): Record<string, unknown> | null {
-  if (!event.body) return null;
-
-  try {
-    return JSON.parse(event.body) as Record<string, unknown>;
-  } catch {
-    try {
-      const params = new URLSearchParams(event.body);
-      const obj: Record<string, string> = {};
-      for (const [key, value] of params.entries()) {
-        obj[key] = value;
-      }
-      return obj;
-    } catch {
-      return null;
-    }
-  }
-}

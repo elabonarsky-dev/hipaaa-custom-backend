@@ -44,6 +44,21 @@ describe("extractFields", () => {
     expect(result.submissionId).toBe("12345");
   });
 
+  it("coerces numeric submissionID to string", () => {
+    const result = extractFields({ submissionID: 5001234567 } as never);
+    expect(result.submissionId).toBe("5001234567");
+  });
+
+  it("extracts submission_id snake_case", () => {
+    const result = extractFields({ submission_id: "99" });
+    expect(result.submissionId).toBe("99");
+  });
+
+  it("prefers submissionID over submission_id", () => {
+    const result = extractFields({ submissionID: "1", submission_id: "2" });
+    expect(result.submissionId).toBe("1");
+  });
+
   it("parses comma-separated file_urls", () => {
     const result = extractFields({
       file_urls: "https://a.com/f1.pdf,https://a.com/f2.pdf",
@@ -103,5 +118,13 @@ describe("jotformPayloadSchema", () => {
       file_urls: ["https://example.com/file.pdf"],
     });
     expect(result.success).toBe(true);
+  });
+
+  it("coerces numeric submissionID through Zod", () => {
+    const result = jotformPayloadSchema.safeParse({ submissionID: 42 });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.submissionID).toBe("42");
+    }
   });
 });

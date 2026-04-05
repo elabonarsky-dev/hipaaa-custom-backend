@@ -1,12 +1,14 @@
 [build]
-  command = "pnpm run db:generate"
-  publish = "."
+  command = "pnpm run typecheck && pnpm run db:generate"
+  publish = "public"
+
+[build.environment]
+  NODE_VERSION = "20"
 
 [functions]
   directory = "netlify/functions"
   node_bundler = "esbuild"
-  external_node_modules = ["@prisma/client"]
-  included_files = ["node_modules/.prisma/**", "node_modules/@prisma/client/**"]
+  included_files = ["prisma/generated/client/**"]
 
 [dev]
   port = 8888

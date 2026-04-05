@@ -1,4 +1,4 @@
-import type { PrismaClient, Member, MemberStage } from "@prisma/client";
+import type { PrismaClient, Member, MemberStage } from "@/prisma";
 import { maskCin, createChildLogger } from "../../utils";
 
 const log = createChildLogger({ module: "members" });
@@ -73,11 +73,11 @@ export async function advanceMemberStage(
     where: { id: memberId },
     data: {
       currentStage: effectiveStage,
-      ...(updateData?.firstName && { firstName: updateData.firstName }),
-      ...(updateData?.lastName && { lastName: updateData.lastName }),
-      ...(updateData?.dob && { dob: updateData.dob }),
-      ...(updateData?.phone && { phone: updateData.phone }),
-      ...(updateData?.email && { email: updateData.email }),
+      ...(updateData?.firstName !== undefined && { firstName: updateData.firstName }),
+      ...(updateData?.lastName !== undefined && { lastName: updateData.lastName }),
+      ...(updateData?.dob !== undefined && { dob: updateData.dob }),
+      ...(updateData?.phone !== undefined && { phone: updateData.phone }),
+      ...(updateData?.email !== undefined && { email: updateData.email }),
     },
   });
 }

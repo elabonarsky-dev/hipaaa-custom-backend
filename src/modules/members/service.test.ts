@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { checkConflict } from "./service";
-import type { Member } from "@prisma/client";
+import type { Member } from "@/prisma";
 
 function makeMember(overrides: Partial<Member> = {}): Member {
   return {

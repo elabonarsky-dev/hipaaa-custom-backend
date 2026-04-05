@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { processSubmission } from "./processor";
+import { forwardToVanillaSoft } from "../vanillasoft";
 
 vi.mock("../../db", () => ({
   getDb: vi.fn(),
@@ -71,6 +72,11 @@ vi.mock("../sharepoint", () => ({
 describe("processSubmission", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(forwardToVanillaSoft).mockResolvedValue({
+      success: true,
+      statusCode: 200,
+      body: "OK",
+    });
   });
 
   it("queues to review when CIN is missing", async () => {
@@ -166,6 +172,77 @@ describe("processSubmission", () => {
     );
 
     expect(result.action).toBe("INTAKE_PROCESSED");
+  });
+
+  it("does not advance member stage when intake VS forward fails", async () => {
+    vi.mocked(forwardToVanillaSoft).mockResolvedValueOnce({
+      success: false,
+      statusCode: 500,
+      body: "VS error",
+    });
+
+    const db = createMockDb();
+    const existingMember = {
+      id: "member-1",
+      cinNormalized: "AB1234",
+      cinRaw: "AB 1234",
+      firstName: "John",
+      lastName: "Doe",
+      dob: null,
+      phone: null,
+      email: null,
+      currentStage: "REFERRAL",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    (db as { member: { findUnique: ReturnType<typeof vi.fn> } }).member.findUnique.mockResolvedValue(
+      existingMember
+    );
+
+    const result = await processSubmission(
+      db as never,
+      "INTAKE",
+      { cin: "AB1234", first_name: "John", last_name: "Doe" }
+    );
+
+    expect(result.action).toBe("VS_FORWARD_FAILED");
+    expect((db as { member: { update: ReturnType<typeof vi.fn> } }).member.update).not.toHaveBeenCalled();
+  });
+
+  it("does not advance member stage when enrollment VS forward fails", async () => {
+    vi.mocked(forwardToVanillaSoft).mockResolvedValueOnce({
+      success: false,
+      statusCode: 502,
+      body: "bad gateway",
+    });
+
+    const db = createMockDb();
+    const existingMember = {
+      id: "member-1",
+      cinNormalized: "AB1234",
+      cinRaw: "AB 1234",
+      firstName: "John",
+      lastName: "Doe",
+      dob: null,
+      phone: null,
+      email: null,
+      currentStage: "INTAKE",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    (db as { member: { findUnique: ReturnType<typeof vi.fn> } }).member.findUnique.mockResolvedValue(
+      existingMember
+    );
+
+    const result = await processSubmission(
+      db as never,
+      "ENROLLMENT",
+      { cin: "AB1234", first_name: "John", last_name: "Doe" }
+    );
+
+    expect(result.action).toBe("VS_FORWARD_FAILED");
+    expect((db as { member: { update: ReturnType<typeof vi.fn> } }).member.update).not.toHaveBeenCalled();
+    expect((db as { sharePointDocument: { create: ReturnType<typeof vi.fn> } }).sharePointDocument.create).not.toHaveBeenCalled();
   });
 
   it("detects conflict when CIN matches but name differs", async () => {
